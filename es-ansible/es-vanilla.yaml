@@ -1,0 +1,52 @@
+---
+- name: Install Docker
+  hosts: altair
+  become: yes
+  vars:
+    ES_PACKAGES:
+      - apt-transport-https
+      - jq
+      - curl
+      - wget
+    USER: "talha"
+
+  tasks:
+    - name: Update apt packages
+      apt:
+        update_cache: "yes"
+        force_apt_get: "yes"
+
+    - name: Install packages needed for es
+      apt:
+        name: "{{ ES_PACKAGES }}"
+        state: present
+        force_apt_get: "yes"
+
+    - name: setup apt repo for elastic search
+      shell: |
+        curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+        echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+
+    - name: reupdate apt packages
+      apt:
+        update_cache: "yes"
+        force_apt_get: "yes"
+
+    - name: Install elasticsearch
+      apt:
+        name: "elasticsearch"
+        state: present
+        force_apt_get: "yes"
+
+    - name: configure elasticsearch
+      copy:
+        src: "./elasticsearch.yml"
+        dest: "/etc/elasticsearch/elasticsearch.yml"
+        owner: "root"
+        group: "root"
+
+    - name: start elasticsearch
+      shell: |
+        systemctl daemon-reload
+        systemctl enable elasticsearch.service
+        systemctl start elasticsearch.service
